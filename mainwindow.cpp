@@ -8,7 +8,6 @@
 #include <QTableView>
 #include "essences.h"
 
-#include <QSqlField>
 #include <QDebug>
 #include "mymodel.h"
 
@@ -20,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(" ");
 
     m_model = new MyModel(this);
+    m_model->saveDirPath(Tools::InitDB());
 
     QObject::connect(m_model,
                      SIGNAL(setTitle(QString)),

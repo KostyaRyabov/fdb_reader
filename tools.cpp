@@ -12,12 +12,120 @@ void Tools::makeEmptyTableFile(QString &tableName, QString &dirPath){
     }
 }
 
-void loadTableData(QString tableName){
+QString Tools::InitDB(){
+    qDebug() << "Inizialisation database directory path";
+    QString dirPath;
+    QStringList tableNames = {"planes","company","status","hangar","shedule","way"};
+    if (!QDir("database").exists()){
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(0, QString::fromUtf8("database folder was not found"),
+                              QString::fromUtf8("add existing database folder?"),
+                              QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes){
+            dirPath = QFileDialog::getExistingDirectory(0,"set database folder","") + "/";
+
+            for (auto &table : tableNames){
+                if (!QFile(dirPath + table + fileFormat).exists())
+                    Tools::makeEmptyTableFile(table, dirPath);
+            }
+        }else{
+            QDir().mkdir("database");
+            dirPath = "database/";
+
+            for (auto &table : tableNames){
+                Tools::makeEmptyTableFile(table, dirPath);
+            }
+        }
+    }else{
+        dirPath = ".database/";
+        for (auto &table : tableNames){
+            if (!QFile(dirPath + table + fileFormat).exists())
+                Tools::makeEmptyTableFile(table, dirPath);
+        }
+    }
+
+    qDebug() << " dirPath = " << dirPath;
+
+    return dirPath;
+}
+
+Tools::Reader::Reader(QString dirPath){
+    this->dirPath = dirPath;
+    qDebug() << "       dirPath was added:"<<this->dirPath;
+}
+
+Tools::Reader::~Reader(){
 
 }
 
-bool save(MyModel &model) {
-    QDataStream out;
+bool Tools::Reader::open(QString fileName, QIODevice::OpenModeFlag flag){
+    qDebug() << "       going to open"<<dirPath+fileName+fileFormat;
+    QStringList tableNames = {"planes","company","status","hangar","shedule","way"};
+
+    if (!tableNames.contains(fileName)){
+        QMessageBox msgBox;
+        msgBox.setText("Error: " + fileName + fileFormat + " is not the database file!");
+        msgBox.exec();
+        return false;
+    }
+
+    file.setFileName(dirPath+fileName+fileFormat);
+    qDebug()<<"file path ="<<file.fileName();
+    if (!file.open(flag)){
+        QMessageBox msgBox;
+        msgBox.setText("Error: could not open file " + fileName + fileFormat);
+        msgBox.exec();
+        return false;
+    }
+
+    if (fileStream != nullptr){
+        delete fileStream;
+    }
+
+    if (flag == QIODevice::ReadOnly){
+        fileStream = new QDataStream(&file);
+        *fileStream >> currentTableName >> size;
+        qDebug() << "detected"<<currentTableName<<"["<<size<<"]";
+        tmp_obj = essences::getObjectByName(currentTableName);
+    }
+
+    return true;
+}
+
+void Tools::Reader::close(){
+    file.close();
+}
+
+bool Tools::Reader::next(){
+    qDebug() << "   [left"<<size<<"elements]";
+    if (size > 0){
+        tmpDataRow.clear();
+
+        for (auto i = 0; i < tmp_obj.size(); i++)
+            *fileStream >> tmpDataRow;
+
+        size--;
+        return true;
+    }
+    return false;
+}
+
+QVariant Tools::Reader::value(int i){
+    return tmpDataRow[i];
+}
+
+QVariant::Type Tools::Reader::fieldType(int i){
+    if (tmp_obj.size() == 0) return QVariant::Int;
+    return tmp_obj.at(i).type();
+}
+
+Tools::Reader& Tools::Reader::operator<< (QVariant &value){
+    *fileStream << value;
+    return *this;
+}
+
+QDataStream &operator<<(QDataStream &out, MyModel &model) {
     QModelIndexList selection = model.ui->tableView->selectionModel()->selectedRows();
 
     out << model.currentTable;
@@ -44,7 +152,7 @@ bool save(MyModel &model) {
     return out;
 }
 
-bool load(MyModel &model) {
+QDataStream &operator>>(QDataStream &in, MyModel &model) {
     qDebug() << "----loading----";
 
     uint size;

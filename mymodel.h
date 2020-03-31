@@ -25,6 +25,7 @@
 #include <QComboBox>
 #include <QVariant>
 
+#include <tools.h>
 #include <QSqlField>
 
 class MyModel: public QAbstractTableModel
@@ -56,7 +57,10 @@ class MyModel: public QAbstractTableModel
 
         bool saveData();
         bool loadData();
+
+        void saveDirPath(QString path);
     private:
+        QString dirPath;
         bool clean_isEnabled = true;
         int inserted_rows_count = 0;
 
@@ -64,7 +68,7 @@ class MyModel: public QAbstractTableModel
 
         QLinkedList<essences::o> storage;
         QHash<QString, QPair<QList<int>, QStringList>> dictionaries;
-        QHash<int, QHash<int, QVariant>> change_list;
+        QMap<int, QHash<int, QVariant>> change_list;
 
         QStringList header;
         essences::o* getRow(int i) const;

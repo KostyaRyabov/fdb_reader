@@ -59,6 +59,10 @@ bool MyModel::saveData(){
     return false;
 }
 
+void MyModel::saveDirPath(QString path){
+    dirPath = path;
+}
+
 bool MyModel::loadData(){
     QString path = QFileDialog::getOpenFileName(0,"Opening File", "", "*.fdb");
 
@@ -224,13 +228,14 @@ void MyModel::clear(){
 }
 
 void MyModel::getHeader(QStringList list){
+    qDebug() << "get headers";
     beginInsertColumns(QModelIndex(), 0, list.size() - 1);
     header = list;
     insertColumns(0,list.size());
     endInsertColumns();
 
-    QSqlQuery query(*database);
     QRegularExpression re("ID$");
+    Tools::Reader reader(dirPath);
 
     for (int i = 0; i < header.size(); i++){
         if (header[i].contains(re)){
@@ -242,21 +247,25 @@ void MyModel::getHeader(QStringList list){
             dictionaries[header[i]].first.append(0);
             dictionaries[header[i]].second.append(" --- ");
 
-            if (query.exec("SELECT * from " + tableName)){
-                while (query.next()){
-                    dictionaries[header[i]].first.append(query.value(0).toInt());
+            reader.open(tableName, QIODevice::ReadOnly);
+            qDebug() << "dic:"<<header[i]<<"is loading";
+            while(reader.next()){
+                dictionaries[header[i]].first.append(reader.value(0).toInt());
 
-                    if (header[i] == "hangarID"){
-                        dictionaries[header[i]].second.append(query.value(0).toString() + " [" + dictionaries[header[1]].second[dictionaries[header[1]].first.indexOf(query.value(1).toInt())] +"]");
-                    }else{
-                        dictionaries[header[i]].second.append(query.value(1).toString());
-                    }
+                if (header[i] == "hangarID"){
+                    dictionaries[header[i]].second.append(reader.value(0).toString() + " [" + dictionaries[header[1]].second[dictionaries[header[1]].first.indexOf(reader.value(1).toInt())] +"]");
+                }else{
+                    dictionaries[header[i]].second.append(reader.value(1).toString());
                 }
+
+                qDebug() << "   "<<dictionaries[header[i]].first.last()<<dictionaries[header[i]].second.last();
             }
+
+            reader.close();
         }
 
         // добавить чекбокс
-        else if (r.field(i).type() == QVariant::UInt){
+        else if (reader.fieldType(i) == QVariant::UInt){
             delegateForColumn.append(new CheckBoxDelegate(this));
             ui->tableView->setItemDelegateForColumn(i, delegateForColumn.last());
         }
@@ -298,47 +307,28 @@ void MyModel::AddEmptyRow(){
 }
 
 bool MyModel::UpdateData(){
-    QStringList query_str;
+    Tools::Reader reader(dirPath);
+    reader.open(currentTable, QIODevice::WriteOnly);
+    int row = 0;
 
-    while (!change_list.isEmpty()){
-        QStringList args;
-
-        auto *item = getRow(change_list.begin().key());
-
-        for (auto &key : change_list.begin().value().keys()){
-            args.append(header[key] + "=");
-
-            switch (storage.first().at(key).type()) {
-            case QVariant::Time:
-            case QVariant::DateTime:
-            case QVariant::String:
-                args.last().append("'" + item->at(key).toString() + "'");
-                break;
-            default:
-                args.last().append(item->at(key).toString());
-                break;
+    for (auto it = storage.begin(); it != storage.end(); it++, row++){
+        if (change_list.contains(row)){
+            auto item = change_list[row];
+            for (int x = 0; x < header.size(); x++){
+                if (item.contains(x)){
+                    reader << item[x];
+                }else{
+                    reader << it->at(x);
+                }
+            }
+        }else{
+            for (int x = 0; x < header.size(); x++){
+                reader << it->at(x);
             }
         }
-
-        query_str.append("UPDATE " + currentTable + " SET " + args.join(", ") + " WHERE id=" + getRow(change_list.begin().key())->at(0).toString());
-
-        change_list.remove(change_list.begin().key());
     }
 
-    if (!query_str.isEmpty()){
-        qDebug() << query_str.join("; ");
-
-        QSqlQuery q(*database);
-
-        if (!q.exec(query_str.join("; "))){
-            QMessageBox msgBox;
-            msgBox.setText("ERROR: " + QSqlError(database->lastError()).text());
-            msgBox.exec();
-
-            return false;
-        }
-    }
-
+    reader.close();
     return true;
 }
 
@@ -366,42 +356,47 @@ void MyModel::loadTable(QString TableName){
 }
 
 bool MyModel::select(QString tableName){
+    qDebug() << "select"<<tableName;
+
     if (clean_isEnabled){
+        qDebug() << "   clear";
         clear();
     }
 
     currentTable = tableName;
-    using T = typeof (essences::getObjectByName(tableName));
+    auto item = essences::getObjectByName(tableName);
 
     if (clean_isEnabled){
+        qDebug() << "   getHeader";
         getHeader(essences::getHeadersOf(tableName));
 
+        qDebug() << "   change title";
         emit setTitle(currentTable);
     } else {
         clean_isEnabled = true;
     }
 
+    qDebug() << "   create reader (by "<<dirPath+tableName+fileFormat<<")";
+    Tools::Reader Reader(dirPath);
+    Reader.open(tableName, QIODevice::ReadOnly);
+
     int i = 0, row;
-    while (q.next()){
+
+    qDebug() << "   start reading";
+    while (Reader.next()){
         row = storage.count();
         beginInsertRows( QModelIndex(), row, row );
 
-        T item;
-
         for (i = 0; i < item.size(); i++) {
-            switch (item.at(i).type()) {
-            case QVariant::Time:
-                item.at(i) = q.value(i).toTime();
-                break;
-            default:
-                item.at(i) = q.value(i);
-                break;
-            }
+            item.at(i) = Reader.value(i);
+            qDebug() << "       ["<<row<<":"<<i<<"] = "<<item.at(i);
         }
 
         storage << item;
         endInsertRows();
     }
+
+    Reader.close();
 
     if (storage.size() > 0)
         ui->add_bn->setEnabled(true);
@@ -412,55 +407,17 @@ bool MyModel::select(QString tableName){
 }
 
 bool MyModel::InsertData(){
-    QStringList query_str;
-    QRegularExpression re("ID$");
+    Tools::Reader reader(dirPath);
+    reader.open(currentTable, QIODevice::WriteOnly);
+    int row = 0;
 
-    for (;inserted_rows_count > 0; inserted_rows_count--){
-        QStringList par;
-        QStringList args;
-
-        auto *item = getRow(storage.size() - inserted_rows_count);
-
-        for (int key = 1; key < header.size(); key++){
-            par.append(header[key]);
-
-            switch (storage.first().at(key).type()) {
-            case QVariant::Time:
-            case QVariant::DateTime:
-            case QVariant::String:
-                args.append("'" + item->at(key).toString() + "'");
-                break;
-            case QVariant::Int:
-                if (header[key].contains(re)){
-                    if (item->at(key).toInt() == 0){
-                        args.append("NULL");
-                    } else {
-                        args.append(item->at(key).toString());
-                    }
-                    break;
-                }
-            default:
-                args.append(item->at(key).toString());
-                break;
-            }
-        }
-
-        query_str.append("INSERT INTO " + currentTable + " (" + par.join(", ") + ") VALUES (" + args.join(", ") + ")");
-    }
-
-    if (!query_str.isEmpty()){
-        qDebug() << query_str.join("; ");
-        QSqlQuery q(*database);
-
-        if (!q.exec(query_str.join("; "))){
-            QMessageBox msgBox;
-            msgBox.setText("ERROR: " + QSqlError(database->lastError()).text());
-            msgBox.exec();
-
-            return false;
+    for (auto it = storage.begin(); it != storage.end(); it++, row++){
+        for (int x = 0; x < header.size(); x++){
+            reader << it->at(x);
         }
     }
 
+    reader.close();
     return true;
 }
 
@@ -468,22 +425,28 @@ bool MyModel::RemoveData(){
     QStringList query_str;
     QModelIndexList selection = ui->tableView->selectionModel()->selectedRows();
 
-    for (auto &index : selection){
-        query_str.append("DELETE FROM " + currentTable + " WHERE id=" + getRow(index.row())->at(0).toString());
-    }
+    Tools::Reader reader(dirPath);
+    reader.open(currentTable, QIODevice::WriteOnly);
+    int row = 0;
 
-    if (!query_str.isEmpty()){
-        qDebug() << query_str.join("; ");
-        QSqlQuery q(*database);
+    auto it_s = selection.begin();
 
-        if (!q.exec(query_str.join("; "))){
-            QMessageBox msgBox;
-            msgBox.setText("ERROR: " + QSqlError(database->lastError()).text());
-            msgBox.exec();
-
-            return false;
+    for (auto it = storage.begin(); it != storage.end(); it++, row++){
+        if (it_s != selection.end()){
+            if (it_s->row() >= row){
+                for (int x = 0; x < header.size(); x++){
+                    reader << it->at(x);
+                }
+            }else{
+                it_s++;
+            }
+        }else{
+            for (int x = 0; x < header.size(); x++){
+                reader << it->at(x);
+            }
         }
     }
 
+    reader.close();
     return true;
 }
