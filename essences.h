@@ -48,6 +48,7 @@ namespace essences {
     };
 
     essences::o getObjectByName(QString TypeName);
+    QStringList getHeadersOf(QString TypeName);
 }
 
 

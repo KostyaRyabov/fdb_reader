@@ -13,77 +13,7 @@
 #include <QStyledItemDelegate>
 
 
-QDataStream &operator<<(QDataStream &out, MyModel &model) {
-    QModelIndexList selection = model.ui->tableView->selectionModel()->selectedRows();
 
-    out << model.currentTable;
-
-    if (selection.size() > 0){
-        out << selection.size();
-
-        for (auto &index : selection){
-            for (int column = 0; column < model.header.size(); column++){
-                out << model.getRow(index.row())->at(column);
-            }
-        }
-    }else{
-        out << model.storage.size();
-
-        for (auto it = model.storage.begin(); it != model.storage.end(); it++){
-            for (int x = 0; x < model.header.size(); x++){
-                out << it->at(x);
-            }
-        }
-    }
-
-
-    return out;
-}
-
-QDataStream &operator>>(QDataStream &in, MyModel &model) {
-    qDebug() << "----loading----";
-
-    uint size;
-    QString TableName;
-
-    in >> TableName >> size;
-
-    qDebug() << "TableName = " << TableName << "; size = " << size;
-
-    if (model.currentTable == TableName){
-        qDebug() << "DisableCleaning";
-        model.clean_isEnabled = false;
-    } else {
-        model.loadTable(TableName);
-    }
-
-    auto item = essences::getObjectByName(model.currentTable);
-    qDebug() << "typeid(item).name() = " << typeid(item).name();
-
-    int row;
-    for (uint y = 0; y < size; y++){
-        for (int x = 0; x < item.size(); x++){
-            in >> item.at(x);
-            qDebug()<<"   ["<<x<<":"<<y<<"] = "<<item.at(x);
-        }
-
-        row = model.storage.count();
-        model.beginInsertRows( QModelIndex(), row, row );
-        model.storage << item;
-        model.endInsertRows();
-    }
-
-    qDebug() << "model.inserted_rows_count += size : " << model.inserted_rows_count<<size;
-    model.inserted_rows_count += size;
-    if (model.inserted_rows_count > 0){
-        model.ui->cancel_bn->setEnabled(true);
-        model.ui->commit_bn->setEnabled(true);
-    }
-    qDebug() << "       res = " << model.inserted_rows_count;
-    qDebug() << "----loaded----";
-
-    return in;
-}
 
 
 MyModel::MyModel( QObject* parent ) : QAbstractTableModel( parent )
@@ -293,18 +223,10 @@ void MyModel::clear(){
     endResetModel();
 }
 
-void MyModel::bindDataBase(QSqlDatabase &db){
-    database = &db;
-}
-
-void MyModel::getHeader(QSqlRecord &r){
-    int count = r.count();
-    beginInsertColumns(QModelIndex(), 0, count - 1);
-    for (int i = 0; i < count; i++) {
-        header.append(r.field(i).name());
-    }
-
-    insertColumns(0,count);
+void MyModel::getHeader(QStringList list){
+    beginInsertColumns(QModelIndex(), 0, list.size() - 1);
+    header = list;
+    insertColumns(0,list.size());
     endInsertColumns();
 
     QSqlQuery query(*database);
@@ -427,20 +349,66 @@ void MyModel::reloadTable(){
 
 void MyModel::loadTable(QString TableName){
     if (TableName == "planes")
-        select<essences::planes>();
+        select("planes");
     else if (TableName == "company")
-        select<essences::company>();
+        select("company");
     else if (TableName == "status")
-        select<essences::status>();
+        select("status");
     else if (TableName == "hangar")
-        select<essences::hangar>();
+        select("hangar");
     else if (TableName == "shedule")
-        select<essences::shedule>();
+        select("shedule");
     else if (TableName == "way")
-        select<essences::way>();
+        select("way");
     else{
         clear();
     }
+}
+
+bool MyModel::select(QString tableName){
+    if (clean_isEnabled){
+        clear();
+    }
+
+    currentTable = tableName;
+    using T = typeof (essences::getObjectByName(tableName));
+
+    if (clean_isEnabled){
+        getHeader(essences::getHeadersOf(tableName));
+
+        emit setTitle(currentTable);
+    } else {
+        clean_isEnabled = true;
+    }
+
+    int i = 0, row;
+    while (q.next()){
+        row = storage.count();
+        beginInsertRows( QModelIndex(), row, row );
+
+        T item;
+
+        for (i = 0; i < item.size(); i++) {
+            switch (item.at(i).type()) {
+            case QVariant::Time:
+                item.at(i) = q.value(i).toTime();
+                break;
+            default:
+                item.at(i) = q.value(i);
+                break;
+            }
+        }
+
+        storage << item;
+        endInsertRows();
+    }
+
+    if (storage.size() > 0)
+        ui->add_bn->setEnabled(true);
+
+    ui->save_bn->setEnabled(true);
+
+    return 1;
 }
 
 bool MyModel::InsertData(){

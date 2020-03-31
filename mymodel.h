@@ -45,7 +45,6 @@ class MyModel: public QAbstractTableModel
         void clear();
 
         void bindView(Ui::MainWindow *ui);
-        void bindDataBase(QSqlDatabase &db);
 
         bool UpdateData();
         bool InsertData();
@@ -62,8 +61,6 @@ class MyModel: public QAbstractTableModel
         int inserted_rows_count = 0;
 
         QString currentTable;
-
-        QSqlDatabase *database;
 
         QLinkedList<essences::o> storage;
         QHash<QString, QPair<QList<int>, QStringList>> dictionaries;
@@ -82,62 +79,7 @@ signals:
         friend QDataStream &operator<<(QDataStream &out, MyModel &model);
         friend QDataStream &operator>>(QDataStream &in, MyModel &model);
 
-        template <typename T>
-        bool select(){
-            QSqlQuery q(*database);
-
-            if (clean_isEnabled){
-                clear();
-            }
-
-            currentTable = QString::fromUtf8(T::getName());
-            q.prepare("SELECT * from " + currentTable);
-
-            if (!q.exec()){
-                QMessageBox msgBox;
-                msgBox.setText("ERROR: " + QSqlError(database->lastError()).text());
-                msgBox.exec();
-                return 0;
-            }
-
-            if (clean_isEnabled){
-                QSqlRecord r = q.record();
-                getHeader(r);
-
-                emit setTitle(currentTable);
-            } else {
-                clean_isEnabled = true;
-            }
-
-            int i = 0, row;
-            while (q.next()){
-                row = storage.count();
-                beginInsertRows( QModelIndex(), row, row );
-
-                T item;
-
-                for (i = 0; i < item.size(); i++) {
-                    switch (item.at(i).type()) {
-                    case QVariant::Time:
-                        item.at(i) = q.value(i).toTime();
-                        break;
-                    default:
-                        item.at(i) = q.value(i);
-                        break;
-                    }
-                }
-
-                storage << item;
-                endInsertRows();
-            }
-
-            if (storage.size() > 0)
-                ui->add_bn->setEnabled(true);
-
-            ui->save_bn->setEnabled(true);
-
-            return 1;
-        }
+        bool select(QString tableName);
 };
 
 

@@ -34,8 +34,6 @@ MainWindow::MainWindow(QWidget *parent)
                  SLOT(selectionChanged()));
 
     ui->tableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
-
-    m_model->bindDataBase(db);
     m_model->bindView(ui);
 }
 

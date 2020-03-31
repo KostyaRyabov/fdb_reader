@@ -9,6 +9,7 @@ CONFIG += c++11
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+# DEFINES += PRO_FILE_PWD=$$sprintf("\"\\\"%1\\\"\"", $$_PRO_FILE_PWD_)
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -21,14 +22,16 @@ SOURCES += \
     essences.cpp \
     main.cpp \
     mainwindow.cpp \
-    mymodel.cpp
+    mymodel.cpp \
+    tools.cpp
 
 HEADERS += \
     checkboxdelegate.h \
     comboboxdelegate.h \
     essences.h \
     mainwindow.h \
-    mymodel.h
+    mymodel.h \
+    tools.h
 
 FORMS += \
     mainwindow.ui

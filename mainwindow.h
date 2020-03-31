@@ -5,10 +5,6 @@
 
 #include <QFile>
 #include <QFileDialog>
-
-#include "QtSql/QSqlDatabase"
-#include "QtSql/QSqlQuery"
-#include "QSqlError"
 #include "QDebug"
 
 #include "mymodel.h"
@@ -31,8 +27,6 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    QSqlDatabase db;
-
     MyModel* m_model;
     Ui::MainWindow *ui;
 

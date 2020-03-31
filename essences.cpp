@@ -98,3 +98,21 @@ essences::o essences::getObjectByName(QString TypeName){
         return essences::o();
     }
 }
+
+QStringList essences::getHeadersOf(QString TypeName){
+    if (TypeName == "planes")
+        return {"id", "name", "companyID", "size", "statusID", "dataCreate"};
+    else if (TypeName == "company")
+        return {"id", "name"};
+    else if (TypeName == "status")
+        return {"id", "record"};
+    else if (TypeName == "hangar")
+        return {"id", "planesID", "Reserved", "datatime"};
+    else if (TypeName == "shedule")
+        return {"id", "planesID", "hangarID", "wayID", "PassangerCount", "datatime"};
+    else if (TypeName == "way")
+        return {"id", "country", "arrives", "nonstop", "duration"};
+    else{
+        return {};
+    }
+}
