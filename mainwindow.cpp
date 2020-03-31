@@ -44,32 +44,32 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_planes_bn_released()
 {
-    m_model->select<essences::planes>();
+    m_model->select("planes");
 }
 
 void MainWindow::on_company_bn_released()
 {
-    m_model->select<essences::company>();
+    m_model->select("company");
 }
 
 void MainWindow::on_status_bn_released()
 {
-    m_model->select<essences::status>();
+    m_model->select("status");
 }
 
 void MainWindow::on_hangar_bn_released()
 {
-    m_model->select<essences::hangar>();
+    m_model->select("hangar");
 }
 
 void MainWindow::on_shedule_bn_released()
 {
-    m_model->select<essences::shedule>();
+    m_model->select("shedule");
 }
 
 void MainWindow::on_way_bn_released()
 {
-    m_model->select<essences::way>();
+    m_model->select("way");
 }
 
 void MainWindow::on_cancel_bn_released()
