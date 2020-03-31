@@ -79,7 +79,7 @@ void MainWindow::on_cancel_bn_released()
 
 void MainWindow::on_commit_bn_released()
 {
-    if (m_model->UpdateData() && m_model->InsertData()) m_model->reloadTable();
+    if (m_model->UpdateData()) m_model->reloadTable();
     else {
         m_model->clear();
         setWindowTitle("");

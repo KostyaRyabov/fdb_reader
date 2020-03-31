@@ -247,21 +247,22 @@ void MyModel::getHeader(QStringList list){
             dictionaries[header[i]].first.append(0);
             dictionaries[header[i]].second.append(" --- ");
 
-            reader.open(tableName, QIODevice::ReadOnly);
-            qDebug() << "dic:"<<header[i]<<"is loading";
-            while(reader.next()){
-                dictionaries[header[i]].first.append(reader.value(0).toInt());
+            if (reader.open(tableName, QIODevice::ReadOnly)){
+                qDebug() << "dic:"<<header[i]<<"is loading";
+                while(reader.next()){
+                    dictionaries[header[i]].first.append(reader.value(0).toInt());
 
-                if (header[i] == "hangarID"){
-                    dictionaries[header[i]].second.append(reader.value(0).toString() + " [" + dictionaries[header[1]].second[dictionaries[header[1]].first.indexOf(reader.value(1).toInt())] +"]");
-                }else{
-                    dictionaries[header[i]].second.append(reader.value(1).toString());
+                    if (header[i] == "hangarID"){
+                        dictionaries[header[i]].second.append(reader.value(0).toString() + " [" + dictionaries[header[1]].second[dictionaries[header[1]].first.indexOf(reader.value(1).toInt())] +"]");
+                    }else{
+                        dictionaries[header[i]].second.append(reader.value(1).toString());
+                    }
+
+                    qDebug() << "   "<<dictionaries[header[i]].first.last()<<dictionaries[header[i]].second.last();
                 }
 
-                qDebug() << "   "<<dictionaries[header[i]].first.last()<<dictionaries[header[i]].second.last();
+                reader.close();
             }
-
-            reader.close();
         }
 
         // добавить чекбокс
@@ -291,11 +292,17 @@ QVariant MyModel::headerData( int section, Qt::Orientation orientation, int role
 }
 
 void MyModel::AddEmptyRow(){
+    qDebug() << "adding new item ["<<currentTable<<"]";
+
     auto row = storage.count();
     beginInsertRows( QModelIndex(), row, row );
 
     auto item = essences::getObjectByName(currentTable);
-    item.at(0) = storage.last().at(0).toInt() + 1;
+    if (storage.size()>0){
+        item.at(0) = storage.last().at(0).toInt() + 1;
+    }else{
+        item.at(0) = 1;
+    }
     storage << item;
 
     inserted_rows_count++;
@@ -304,32 +311,6 @@ void MyModel::AddEmptyRow(){
 
     ui->commit_bn->setEnabled(true);
     ui->cancel_bn->setEnabled(true);
-}
-
-bool MyModel::UpdateData(){
-    Tools::Reader reader(dirPath);
-    reader.open(currentTable, QIODevice::WriteOnly);
-    int row = 0;
-
-    for (auto it = storage.begin(); it != storage.end(); it++, row++){
-        if (change_list.contains(row)){
-            auto item = change_list[row];
-            for (int x = 0; x < header.size(); x++){
-                if (item.contains(x)){
-                    reader << item[x];
-                }else{
-                    reader << it->at(x);
-                }
-            }
-        }else{
-            for (int x = 0; x < header.size(); x++){
-                reader << it->at(x);
-            }
-        }
-    }
-
-    reader.close();
-    return true;
 }
 
 void MyModel::reloadTable(){
@@ -378,42 +359,64 @@ bool MyModel::select(QString tableName){
 
     qDebug() << "   create reader (by "<<dirPath+tableName+fileFormat<<")";
     Tools::Reader Reader(dirPath);
-    Reader.open(tableName, QIODevice::ReadOnly);
 
-    int i = 0, row;
+    if (Reader.open(tableName, QIODevice::ReadOnly)){
+        int i = 0, row;
 
-    qDebug() << "   start reading";
-    while (Reader.next()){
-        row = storage.count();
-        beginInsertRows( QModelIndex(), row, row );
+        qDebug() << "   start reading";
+        while (Reader.next()){
+            row = storage.count();
+            beginInsertRows( QModelIndex(), row, row );
 
-        for (i = 0; i < item.size(); i++) {
-            item.at(i) = Reader.value(i);
-            qDebug() << "       ["<<row<<":"<<i<<"] = "<<item.at(i);
+            for (i = 0; i < item.size(); i++) {
+                item.at(i) = Reader.value(i);
+                qDebug() << "       ["<<row<<":"<<i<<"] = "<<item.at(i);
+            }
+
+            storage << item;
+            endInsertRows();
         }
 
-        storage << item;
-        endInsertRows();
-    }
+        Reader.close();
 
-    Reader.close();
-
-    if (storage.size() > 0)
         ui->add_bn->setEnabled(true);
-
-    ui->save_bn->setEnabled(true);
+        ui->save_bn->setEnabled(true);
+    }
 
     return 1;
 }
 
-bool MyModel::InsertData(){
+bool MyModel::UpdateData(){
+    qDebug() << "UpdateData";
     Tools::Reader reader(dirPath);
     reader.open(currentTable, QIODevice::WriteOnly);
     int row = 0;
 
+    qDebug() << "currentTable = "<<currentTable<<"; storage.size() = "<<storage.size();
+
+    reader << currentTable;
+    reader << storage.size();
+
+    qDebug() << "parameters installed";
+
     for (auto it = storage.begin(); it != storage.end(); it++, row++){
-        for (int x = 0; x < header.size(); x++){
-            reader << it->at(x);
+        if (change_list.contains(row)){
+            qDebug() << "changeList contains"<<row<<"row";
+            auto item = change_list[row];
+            for (int x = 0; x < header.size(); x++){
+                if (item.contains(x)){
+                    qDebug() << "       ["<<row<<":"<<x<<"] = "<<item[x]<<"     (changed)";
+                    reader << item[x];
+                }else{
+                    qDebug() << "       ["<<row<<":"<<x<<"] = "<<it->at(x);
+                    reader << it->at(x);
+                }
+            }
+        }else{
+            for (int x = 0; x < header.size(); x++){
+                qDebug() << "       ["<<row<<":"<<x<<"] = "<<it->at(x);
+                reader << it->at(x);
+            }
         }
     }
 

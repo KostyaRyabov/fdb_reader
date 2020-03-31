@@ -48,7 +48,6 @@ class MyModel: public QAbstractTableModel
         void bindView(Ui::MainWindow *ui);
 
         bool UpdateData();
-        bool InsertData();
         bool RemoveData();
 
         void AddEmptyRow();

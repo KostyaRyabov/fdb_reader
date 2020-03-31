@@ -5,6 +5,7 @@ void Tools::makeEmptyTableFile(QString &tableName, QString &dirPath){
     if (file.open(QIODevice::WriteOnly)){
         qDebug() << " file.path = " << dirPath + tableName + fileFormat;
         QDataStream out(&file);
+        out.setVersion(QDataStream::Qt_DefaultCompiledVersion);
 
         out << tableName << 0;
 
@@ -31,14 +32,14 @@ QString Tools::InitDB(){
             }
         }else{
             QDir().mkdir("database");
-            dirPath = "database/";
+            dirPath = QDir::currentPath()+"/database/";
 
             for (auto &table : tableNames){
                 Tools::makeEmptyTableFile(table, dirPath);
             }
         }
     }else{
-        dirPath = ".database/";
+        dirPath = QDir::currentPath()+"/database/";
         for (auto &table : tableNames){
             if (!QFile(dirPath + table + fileFormat).exists())
                 Tools::makeEmptyTableFile(table, dirPath);
@@ -70,13 +71,27 @@ bool Tools::Reader::open(QString fileName, QIODevice::OpenModeFlag flag){
         return false;
     }
 
-    file.setFileName(dirPath+fileName+fileFormat);
-    qDebug()<<"file path ="<<file.fileName();
-    if (!file.open(flag)){
+    if (file != nullptr){
+        delete file;
+    }
+
+    file = new QFile(dirPath+fileName+fileFormat);
+
+    qDebug()<<"file path ="<<file->fileName();
+    if (!file->exists()){
+        qDebug() << "file not exists";
+        makeEmptyTableFile(fileName, dirPath);
+    }else{
+        qDebug() << "file exists";
+    }
+
+    if (!file->open(flag)){
         QMessageBox msgBox;
-        msgBox.setText("Error: could not open file " + fileName + fileFormat);
+        msgBox.setText("Error: could not open file " + fileName + fileFormat + "\r\n"+ file->errorString());
         msgBox.exec();
         return false;
+    }else{
+        qDebug() << "success";
     }
 
     if (fileStream != nullptr){
@@ -84,7 +99,7 @@ bool Tools::Reader::open(QString fileName, QIODevice::OpenModeFlag flag){
     }
 
     if (flag == QIODevice::ReadOnly){
-        fileStream = new QDataStream(&file);
+        fileStream = new QDataStream(file);
         *fileStream >> currentTableName >> size;
         qDebug() << "detected"<<currentTableName<<"["<<size<<"]";
         tmp_obj = essences::getObjectByName(currentTableName);
@@ -94,7 +109,7 @@ bool Tools::Reader::open(QString fileName, QIODevice::OpenModeFlag flag){
 }
 
 void Tools::Reader::close(){
-    file.close();
+    file->close();
 }
 
 bool Tools::Reader::next(){
@@ -120,9 +135,14 @@ QVariant::Type Tools::Reader::fieldType(int i){
     return tmp_obj.at(i).type();
 }
 
-Tools::Reader& Tools::Reader::operator<< (QVariant &value){
-    *fileStream << value;
-    return *this;
+void Tools::Reader::operator<< (QVariant &value){
+    *fileStream<<value;
+}
+void Tools::Reader::operator<< (QString &value){
+    *fileStream<<value;
+}
+void Tools::Reader::operator<< (int value){
+    *fileStream<<value;
 }
 
 QDataStream &operator<<(QDataStream &out, MyModel &model) {
@@ -131,18 +151,23 @@ QDataStream &operator<<(QDataStream &out, MyModel &model) {
     out << model.currentTable;
 
     if (selection.size() > 0){
+        qDebug() << "   insert "<<selection.size()<<"selection elements";
         out << selection.size();
 
         for (auto &index : selection){
             for (int column = 0; column < model.header.size(); column++){
+                qDebug() << "       ["<<index.row()<<":"<<column<<"] = "<<model.getRow(index.row())->at(column);
                 out << model.getRow(index.row())->at(column);
             }
         }
     }else{
+        qDebug() << "   insert"<<model.storage.size()<<"elements";
         out << model.storage.size();
 
-        for (auto it = model.storage.begin(); it != model.storage.end(); it++){
+        int row = 0;
+        for (auto it = model.storage.begin(); it != model.storage.end(); it++, row++){
             for (int x = 0; x < model.header.size(); x++){
+                qDebug() << "       ["<<row<<":"<<x<<"] = "<<it->at(x);
                 out << it->at(x);
             }
         }
