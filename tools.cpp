@@ -127,7 +127,18 @@ bool Tools::Reader::next(){
 }
 
 QVariant Tools::Reader::value(int i){
-    return tmpDataRow[i];
+    auto type = tmp_obj.at(i).type();
+    if (type == QVariant::DateTime){
+        return tmpDataRow[i].value<QDateTime>();
+    }else if (type == QVariant::Time){
+        return tmpDataRow[i].value<QTime>();
+    }else if (type == QVariant::UInt){
+        return tmpDataRow[i].value<uint>();
+    }else if (type == QVariant::String){
+        return tmpDataRow[i].value<QString>();
+    }else{
+        return tmpDataRow[i].value<int>();
+    }
 }
 
 QVariant::Type Tools::Reader::fieldType(int i){
