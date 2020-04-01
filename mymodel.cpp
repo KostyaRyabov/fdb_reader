@@ -29,76 +29,6 @@ void MyModel::bindView(Ui::MainWindow *ui){
     this->ui = ui;
 }
 
-bool MyModel::saveData(){
-    QString path = QFileDialog::getSaveFileName(0,"Saving File", "", "*.fdb");
-
-    if (!path.isEmpty()){
-        QFile file(path);
-
-        if (file.open(QIODevice::WriteOnly)){
-            QDataStream stream(&file);
-            stream.setVersion(QDataStream::Qt_DefaultCompiledVersion);
-            stream << *this;
-
-            if (stream.status() != QDataStream::Ok){
-                QMessageBox msgBox;
-                msgBox.setText("ошибка записи");
-                msgBox.exec();
-
-                file.close();
-                return false;
-            }else{
-                file.close();
-                return true;
-            }
-        }
-
-        file.close();
-        return true;
-    }
-    return false;
-}
-
-void MyModel::saveDirPath(QString path){
-    dirPath = path;
-}
-
-bool MyModel::loadData(){
-    QString path = QFileDialog::getOpenFileName(0,"Opening File", "", "*.fdb");
-
-    if (!path.isEmpty()){
-        QFile file(path);
-
-        qDebug() << "file.fileName() = " << file.fileName();
-
-        if (file.open(QIODevice::ReadOnly)){
-            QDataStream stream(&file);
-            stream.setVersion(QDataStream::Qt_DefaultCompiledVersion);
-
-            qDebug() << " 1 : storage.size() = " << storage.size();
-            stream >> *this;
-            qDebug() << " 2 : storage.size() = " << storage.size();
-
-            if (stream.status() != QDataStream::Ok){
-                QMessageBox msgBox;
-                msgBox.setText("ошибка чтения");
-                msgBox.exec();
-
-                file.close();
-                return false;
-            }else{
-                qDebug() << "inserted_rows_count = " << inserted_rows_count;
-
-                file.close();
-                return true;
-            }
-        }
-        file.close();
-        return true;
-    }
-    return false;
-}
-
 essences::o* MyModel::getRow(int i) const{
     for (auto it = storage.begin(); it != storage.end(); i--, it++){
         if (i <= 0){
@@ -412,32 +342,147 @@ bool MyModel::UpdateData(){
 }
 
 bool MyModel::RemoveData(){
-    QStringList query_str;
     QModelIndexList selection = ui->tableView->selectionModel()->selectedRows();
 
     Tools::Reader reader(dirPath);
-    reader.open(currentTable, QIODevice::WriteOnly);
-    int row = 0;
+    if (reader.open(currentTable, QIODevice::WriteOnly)){
+        int row = 0;
 
-    auto it_s = selection.begin();
+        reader << currentTable;
+        reader << storage.size() - selection.size();
 
-    for (auto it = storage.begin(); it != storage.end(); it++, row++){
-        if (it_s != selection.end()){
-            qDebug() << "(it_s->row() != row) : " <<it_s->row() <<"!="<< row;
-            if (it_s->row() != row){
+        auto it_s = selection.begin();
+
+        for (auto it = storage.begin(); it != storage.end(); it++, row++){
+            if (it_s != selection.end()){
+                qDebug() << "(it_s->row() != row) : " <<it_s->row() <<"!="<< row;
+                if (it_s->row() != row){
+                    for (int x = 0; x < header.size(); x++){
+                        reader << it->at(x);
+                    }
+                }else{
+                    it_s++;
+                }
+            }else{
+                qDebug() << "row : " << row;
                 for (int x = 0; x < header.size(); x++){
                     reader << it->at(x);
                 }
-
-                it_s++;
-            }
-        }else{
-            for (int x = 0; x < header.size(); x++){
-                reader << it->at(x);
             }
         }
-    }
 
-    reader.close();
-    return true;
+        reader.close();
+        return true;
+    }
+    return false;
+}
+
+bool MyModel::saveData(){
+    qDebug() << "saving data";
+    QString path = QFileDialog::getSaveFileName(0,"Saving File", "", QString("*")+QString(fileFormat));
+
+    qDebug() << "path ="<< path;
+
+    path = path.mid(0,path.size()-QString(fileFormat).length());
+    if (!path.isEmpty()){
+        QModelIndexList selection = ui->tableView->selectionModel()->selectedRows();
+
+        Tools::Reader reader("");
+        if (reader.open(path, QIODevice::WriteOnly)){
+            qDebug() << "save"<<currentTable<<selection.size();
+            reader << currentTable;
+
+            if (selection.size() > 0){
+                reader << selection.size();
+
+                for (auto index = selection.begin(); index != selection.end(); index++){
+                    for (int x = 0; x < header.size(); x++){
+                        reader << getRow(index->row())->at(x);
+                    }
+                }
+            }else{
+                reader << storage.size();
+
+                for (auto it = storage.begin(); it != storage.end(); it++){
+                    for (int x = 0; x < header.size(); x++){
+                        reader << it->at(x);
+                    }
+                }
+            }
+
+
+
+            reader.close();
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+void MyModel::saveDirPath(QString path){
+    dirPath = path;
+    ui->DirPath->setText(dirPath);
+}
+
+bool MyModel::loadData(){
+    qDebug() << "----loading----";
+
+    QString path = QFileDialog::getOpenFileName(0,"Opening File", "", "*.fdb");
+
+    qDebug() << "path for loading ="<<path;
+
+    path = path.mid(0,path.size()-QString(fileFormat).length());
+
+    if (!path.isEmpty()){
+        Tools::Reader reader("");
+        if (reader.open(path, QIODevice::ReadOnly)){
+            int row = 0;
+
+            qDebug() << "load"<<reader.getTableName()<<reader.getSize();
+
+            if (reader.getTableName() == currentTable){
+                //уже открыта таблица и не нужно вносить изменений
+                qDebug() << "DisableCleaning";
+                clean_isEnabled = false;
+            } else {
+                loadTable(reader.getTableName());
+            }
+
+            auto item = essences::getObjectByName(currentTable);
+
+            qDebug() << "model.inserted_rows_count += size : " << inserted_rows_count<<reader.getSize();
+            inserted_rows_count += reader.getSize();
+            if (inserted_rows_count > 0){
+                ui->cancel_bn->setEnabled(true);
+                ui->commit_bn->setEnabled(true);
+            }
+
+            int count = (storage.size()>0)?storage.last().at(0).toInt():1;
+
+            while (reader.next()){
+                item.at(0) = count++;
+                qDebug() << "       ["<<0<<"] : "<<count++;
+
+                for (int x = 1; x < header.size(); x++){
+                    item.at(x) = reader.value(x);
+                    qDebug() << "       ["<<x<<"] : "<<item.at(x);
+                }
+
+                row = storage.count();
+                beginInsertRows( QModelIndex(), row, row );
+                storage << item;
+                qDebug() << "           (loaded)";
+                endInsertRows();
+            }
+
+            qDebug() << "       res = " << inserted_rows_count;
+            qDebug() << "----loaded----";
+
+            reader.close();
+            return true;
+        }
+        return false;
+    }
+    return false;
 }

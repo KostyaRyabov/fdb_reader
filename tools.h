@@ -30,6 +30,9 @@ namespace Tools{
         void operator<< (QVariant value);
         void operator<< (QString value);
         void operator<< (int value);
+
+        QString &getTableName() ;
+        uint& getSize();
     private:
         QString dirPath;
         essences::o tmp_obj;

@@ -18,7 +18,9 @@ QWidget *ComboBoxDelegate::createEditor(QWidget *parent, const QStyleOptionViewI
     QComboBox *editor = new QComboBox(parent);
 
     editor->addItems(*values);
-    editor->setCurrentIndex(keys->indexOf(index.model()->data(index, Qt::DisplayRole).toInt()));
+    auto selection = keys->indexOf(index.model()->data(index, Qt::DisplayRole).toInt());
+    if (selection == -1) selection = 0;
+    editor->setCurrentIndex(selection);
 
     return editor;
 }
@@ -37,7 +39,11 @@ void ComboBoxDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionV
 void ComboBoxDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QStyleOptionViewItem myOption = option;
-    myOption.text = values->value(keys->indexOf(index.model()->data(index, Qt::DisplayRole).toInt()));
+
+    auto selection = keys->indexOf(index.model()->data(index, Qt::DisplayRole).toInt());
+    if (selection == -1) selection = 0;
+
+    myOption.text = values->value(selection);
     myOption.backgroundBrush = QBrush(index.model()->data(index, Qt::BackgroundRole).value<QColor>());
     QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &myOption, painter);
 }

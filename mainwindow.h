@@ -49,5 +49,6 @@ private slots:
     void selectionChanged();
 
     void on_load_bn_released();
+    void on_changeDBFolder_bn_released();
 };
 #endif // MAINWINDOW_H

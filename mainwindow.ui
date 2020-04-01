@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>847</width>
-    <height>447</height>
+    <height>454</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -40,9 +40,9 @@
    <widget class="QPushButton" name="company_bn">
     <property name="geometry">
      <rect>
-      <x>80</x>
+      <x>60</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -53,9 +53,9 @@
    <widget class="QPushButton" name="status_bn">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>110</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -66,9 +66,9 @@
    <widget class="QPushButton" name="hangar_bn">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>160</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -79,9 +79,9 @@
    <widget class="QPushButton" name="shedule_bn">
     <property name="geometry">
      <rect>
-      <x>290</x>
+      <x>210</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -92,9 +92,9 @@
    <widget class="QPushButton" name="way_bn">
     <property name="geometry">
      <rect>
-      <x>360</x>
+      <x>260</x>
       <y>10</y>
-      <width>75</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -108,7 +108,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>760</x>
+      <x>660</x>
       <y>10</y>
       <width>75</width>
       <height>23</height>
@@ -124,7 +124,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>530</x>
+      <x>420</x>
       <y>10</y>
       <width>75</width>
       <height>23</height>
@@ -140,9 +140,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>460</x>
+      <x>350</x>
       <y>10</y>
-      <width>75</width>
+      <width>71</width>
       <height>23</height>
      </rect>
     </property>
@@ -172,7 +172,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>600</x>
+      <x>490</x>
       <y>10</y>
       <width>75</width>
       <height>23</height>
@@ -188,7 +188,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>690</x>
+      <x>590</x>
       <y>10</y>
       <width>75</width>
       <height>23</height>
@@ -196,6 +196,35 @@
     </property>
     <property name="text">
      <string>load</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="changeDBFolder_bn">
+    <property name="geometry">
+     <rect>
+      <x>760</x>
+      <y>10</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>change DB</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="DirPath">
+    <property name="geometry">
+     <rect>
+      <x>16</x>
+      <y>430</y>
+      <width>821</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>path</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
   </widget>

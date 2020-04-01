@@ -19,7 +19,6 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(" ");
 
     m_model = new MyModel(this);
-    m_model->saveDirPath(Tools::InitDB());
 
     QObject::connect(m_model,
                      SIGNAL(setTitle(QString)),
@@ -35,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->tableView->setEditTriggers(QAbstractItemView::AllEditTriggers);
     m_model->bindView(ui);
+    m_model->saveDirPath(Tools::InitDB());
 }
 
 MainWindow::~MainWindow()
@@ -129,8 +129,26 @@ void MainWindow::selectionChanged(){
             ui->save_bn->setText("save (all)");
             ui->save_bn->setEnabled(true);
         }else{
+            ui->remove_bn->setText("remove");
             ui->save_bn->setText("save");
             ui->save_bn->setEnabled(false);
         }
     }
+}
+
+void MainWindow::on_changeDBFolder_bn_released()
+{
+    QString dirPath = QFileDialog::getExistingDirectory(0,"set database folder","") + "/";
+
+    if (dirPath == "/"){
+        QDir().mkdir("database");
+        dirPath = QDir::currentPath()+"/database/";
+    }
+
+    for (auto &table : QStringList{"planes","company","status","hangar","shedule","way"}){
+        if (!QFile(dirPath + table + fileFormat).exists())
+            Tools::makeEmptyTableFile(table, dirPath);
+    }
+
+    m_model->saveDirPath(dirPath);
 }
