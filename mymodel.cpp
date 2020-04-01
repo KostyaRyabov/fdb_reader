@@ -120,7 +120,7 @@ Qt::ItemFlags MyModel::flags( const QModelIndex& index ) const {
     }
 
     if (index.column() == 0){
-        return Qt::ItemIsEnabled;
+        return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
     }
 
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
@@ -239,6 +239,7 @@ void MyModel::AddEmptyRow(){
 
     endInsertRows();
 
+    ui->save_bn->setEnabled(true);
     ui->commit_bn->setEnabled(true);
     ui->cancel_bn->setEnabled(true);
 }
@@ -310,7 +311,9 @@ bool MyModel::select(QString tableName){
         Reader.close();
 
         ui->add_bn->setEnabled(true);
-        ui->save_bn->setEnabled(true);
+
+        if (storage.size() > 0)
+            ui->save_bn->setEnabled(true);
     }
 
     return 1;

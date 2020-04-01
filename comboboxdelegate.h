@@ -19,6 +19,7 @@ public:
 private:
     QList<int> *keys;
     QStringList *values;
+    MyModel *model;
 };
 
 #endif // COMBOBOXDELEGATE_H
