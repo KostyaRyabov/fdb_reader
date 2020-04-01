@@ -98,11 +98,12 @@ bool Tools::Reader::open(QString fileName, QIODevice::OpenModeFlag flag){
         delete fileStream;
     }
 
+    fileStream = new QDataStream(file);
+    tmp_obj = essences::getObjectByName(fileName);
+
     if (flag == QIODevice::ReadOnly){
-        fileStream = new QDataStream(file);
         *fileStream >> currentTableName >> size;
         qDebug() << "detected"<<currentTableName<<"["<<size<<"]";
-        tmp_obj = essences::getObjectByName(currentTableName);
     }
 
     return true;
@@ -115,10 +116,10 @@ void Tools::Reader::close(){
 bool Tools::Reader::next(){
     qDebug() << "   [left"<<size<<"elements]";
     if (size > 0){
-        tmpDataRow.clear();
+        qDebug() << "   tmp_obj.size()="<<tmp_obj.size();
 
         for (auto i = 0; i < tmp_obj.size(); i++)
-            *fileStream >> tmpDataRow;
+            *fileStream >> tmp_obj.at(i);
 
         size--;
         return true;
@@ -129,15 +130,15 @@ bool Tools::Reader::next(){
 QVariant Tools::Reader::value(int i){
     auto type = tmp_obj.at(i).type();
     if (type == QVariant::DateTime){
-        return tmpDataRow[i].value<QDateTime>();
+        return tmp_obj.at(i).value<QDateTime>();
     }else if (type == QVariant::Time){
-        return tmpDataRow[i].value<QTime>();
+        return tmp_obj.at(i).value<QTime>();
     }else if (type == QVariant::UInt){
-        return tmpDataRow[i].value<uint>();
+        return tmp_obj.at(i).value<uint>();
     }else if (type == QVariant::String){
-        return tmpDataRow[i].value<QString>();
+        return tmp_obj.at(i).value<QString>();
     }else{
-        return tmpDataRow[i].value<int>();
+        return tmp_obj.at(i).value<int>();
     }
 }
 
@@ -146,10 +147,10 @@ QVariant::Type Tools::Reader::fieldType(int i){
     return tmp_obj.at(i).type();
 }
 
-void Tools::Reader::operator<< (QVariant &value){
+void Tools::Reader::operator<< (QVariant value){
     *fileStream<<value;
 }
-void Tools::Reader::operator<< (QString &value){
+void Tools::Reader::operator<< (QString value){
     *fileStream<<value;
 }
 void Tools::Reader::operator<< (int value){

@@ -27,13 +27,12 @@ namespace Tools{
         QVariant value(int i);
         QVariant::Type fieldType(int i);
 
-        void operator<< (QVariant &value);
-        void operator<< (QString &value);
+        void operator<< (QVariant value);
+        void operator<< (QString value);
         void operator<< (int value);
     private:
         QString dirPath;
         essences::o tmp_obj;
-        QList<QVariant> tmpDataRow;
         uint size = 0;
         QDataStream *fileStream = nullptr;
         QString currentTableName;

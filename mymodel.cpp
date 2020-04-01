@@ -389,39 +389,26 @@ bool MyModel::select(QString tableName){
 bool MyModel::UpdateData(){
     qDebug() << "UpdateData";
     Tools::Reader reader(dirPath);
-    reader.open(currentTable, QIODevice::WriteOnly);
-    int row = 0;
 
-    qDebug() << "currentTable = "<<currentTable<<"; storage.size() = "<<storage.size();
+    if (reader.open(currentTable, QIODevice::WriteOnly)){
+        qDebug() << "currentTable = "<<currentTable<<"; storage.size() = "<<storage.size();
 
-    reader << currentTable;
-    reader << storage.size();
+        reader << currentTable;
+        reader << storage.size();
 
-    qDebug() << "parameters installed";
+        qDebug() << "parameters installed";
 
-    for (auto it = storage.begin(); it != storage.end(); it++, row++){
-        if (change_list.contains(row)){
-            qDebug() << "changeList contains"<<row<<"row";
-            auto item = change_list[row];
+        for (auto it = storage.begin(); it != storage.end(); it++){
             for (int x = 0; x < header.size(); x++){
-                if (item.contains(x)){
-                    qDebug() << "       ["<<row<<":"<<x<<"] = "<<item[x]<<"     (changed)";
-                    reader << item[x];
-                }else{
-                    qDebug() << "       ["<<row<<":"<<x<<"] = "<<it->at(x);
-                    reader << it->at(x);
-                }
-            }
-        }else{
-            for (int x = 0; x < header.size(); x++){
-                qDebug() << "       ["<<row<<":"<<x<<"] = "<<it->at(x);
                 reader << it->at(x);
             }
         }
+
+        reader.close();
+        return true;
     }
 
-    reader.close();
-    return true;
+    return false;
 }
 
 bool MyModel::RemoveData(){
@@ -436,11 +423,12 @@ bool MyModel::RemoveData(){
 
     for (auto it = storage.begin(); it != storage.end(); it++, row++){
         if (it_s != selection.end()){
-            if (it_s->row() >= row){
+            qDebug() << "(it_s->row() != row) : " <<it_s->row() <<"!="<< row;
+            if (it_s->row() != row){
                 for (int x = 0; x < header.size(); x++){
                     reader << it->at(x);
                 }
-            }else{
+
                 it_s++;
             }
         }else{
