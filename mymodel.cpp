@@ -23,6 +23,9 @@ MyModel::MyModel( QObject* parent ) : QAbstractTableModel( parent )
 
 MyModel::~MyModel()
 {
+    storage.clear();
+    dictionaries.clear();
+    change_list.clear();
 }
 
 void MyModel::bindView(Ui::MainWindow *ui){

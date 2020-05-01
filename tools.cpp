@@ -66,7 +66,8 @@ Tools::Reader::Reader(QString dirPath){
 }
 
 Tools::Reader::~Reader(){
-
+    delete fileStream;
+    delete file;
 }
 
 QString &Tools::Reader::getTableName(){

@@ -11,8 +11,6 @@ class ComboBoxDelegate : public QItemDelegate
 {
 public:
     ComboBoxDelegate(int column, MyModel *parent = nullptr);
-    ~ComboBoxDelegate();
-
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
     void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
     void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &/* index */) const;
