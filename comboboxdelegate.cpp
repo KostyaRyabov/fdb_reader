@@ -54,3 +54,9 @@ void ComboBoxDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
     myOption.backgroundBrush = QBrush(index.model()->data(index, Qt::BackgroundRole).value<QColor>());
     QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &myOption, painter);
 }
+
+ComboBoxDelegate::~ComboBoxDelegate(){
+    delete keys;
+    delete values;
+    delete model;
+}
