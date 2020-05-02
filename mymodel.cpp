@@ -3,16 +3,10 @@
 #include <QTableView>
 #include <QString>
 #include <QSqlField>
-#include <QCheckBox>
-#include <QPair>
-#include <qpair.h>
 #include <QDebug>
 #include <QRegularExpression>
-#include <QCheckBox>
 #include "essences.h"
 #include <QStyledItemDelegate>
-
-
 
 
 
@@ -26,6 +20,7 @@ MyModel::~MyModel()
     storage.clear();
     dictionaries.clear();
     change_list.clear();
+    header.clear();
 }
 
 void MyModel::bindView(Ui::MainWindow *ui){
@@ -170,6 +165,8 @@ void MyModel::getHeader(QStringList list){
     QRegularExpression re("ID$");
     Tools::Reader reader(dirPath);
 
+    auto item = essences::getObjectByName(currentTable);
+
     for (int i = 0; i < header.size(); i++){
         if (header[i].contains(re)){
             delegateForColumn.append(new ComboBoxDelegate(i, this));
@@ -199,7 +196,7 @@ void MyModel::getHeader(QStringList list){
         }
 
         // добавить чекбокс
-        else if (reader.fieldType(i) == QVariant::UInt){
+        else if (item.at(i).type() == QVariant::UInt){
             delegateForColumn.append(new CheckBoxDelegate(this));
             ui->tableView->setItemDelegateForColumn(i, delegateForColumn.last());
         }
